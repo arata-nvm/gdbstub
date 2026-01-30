@@ -232,7 +232,7 @@ commands! {
         "?" => question_mark::QuestionMark,
         "D" => _d_upcase::D,
         "g" => _g::g,
-        "G" => _g_upcase::G<'a>,
+        // "G" => _g_upcase::G<'a>,
         "H" => _h_upcase::H,
         "k" => _k::k,
         "m" => _m::m<'a>,
@@ -265,7 +265,7 @@ commands! {
 
     single_register_access use 'a {
         "p" => _p::p<'a>,
-        "P" => _p_upcase::P<'a>,
+        // "P" => _p_upcase::P<'a>,
     }
 
     extended_mode use 'a {

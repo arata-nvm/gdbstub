@@ -286,19 +286,19 @@ impl<T: Target, C: Connection> GdbStubImpl<T, C> {
                 err?;
                 HandlerStatus::Handled
             }
-            Base::G(cmd) => {
-                let mut regs: <T::Arch as Arch>::Registers = Default::default();
-                regs.gdb_deserialize(cmd.vals)
-                    .map_err(|_| Error::TargetMismatch)?;
+            // Base::G(cmd) => {
+            //     let mut regs: <T::Arch as Arch>::Registers = Default::default();
+            //     regs.gdb_deserialize(cmd.vals)
+            //         .map_err(|_| Error::TargetMismatch)?;
 
-                match target.base_ops() {
-                    BaseOps::SingleThread(ops) => ops.write_registers(&regs),
-                    BaseOps::MultiThread(ops) => ops.write_registers(&regs, self.current_mem_tid),
-                }
-                .handle_error()?;
+            //     match target.base_ops() {
+            //         BaseOps::SingleThread(ops) => ops.write_registers(&regs),
+            //         BaseOps::MultiThread(ops) => ops.write_registers(&regs, self.current_mem_tid),
+            //     }
+            //     .handle_error()?;
 
-                HandlerStatus::NeedsOk
-            }
+            //     HandlerStatus::NeedsOk
+            // }
             Base::m(cmd) => {
                 let buf = cmd.buf;
                 let addr = <T::Arch as Arch>::Usize::from_be_bytes(cmd.addr)

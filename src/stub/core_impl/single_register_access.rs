@@ -52,16 +52,15 @@ impl<T: Target, C: Connection> GdbStubImpl<T, C> {
                     res.write_hex_buf(buf)?;
                 }
                 HandlerStatus::Handled
-            }
-            SingleRegisterAccess::P(p) => {
-                let reg = <T::Arch as Arch>::RegId::from_raw_id(p.reg_id);
-                match reg {
-                    // empty packet indicates unrecognized query
-                    None => return Ok(HandlerStatus::Handled),
-                    Some((reg_id, _)) => ops.write_register(id, reg_id, p.val).handle_error()?,
-                }
-                HandlerStatus::NeedsOk
-            }
+            } // SingleRegisterAccess::P(p) => {
+              //     let reg = <T::Arch as Arch>::RegId::from_raw_id(p.reg_id);
+              //     match reg {
+              //         // empty packet indicates unrecognized query
+              //         None => return Ok(HandlerStatus::Handled),
+              //         Some((reg_id, _)) => ops.write_register(id, reg_id, p.val).handle_error()?,
+              //     }
+              //     HandlerStatus::NeedsOk
+              // }
         };
 
         Ok(handler_status)
