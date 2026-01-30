@@ -48,6 +48,6 @@ required-features = ["std"]
 name = "armv4t_multicore"
 required-features = ["std"]
 
-[workspace]
-members = ["gdbstub_arch"]
-exclude = ["example_no_std"]
+# [workspace]
+# members = ["gdbstub_arch"]
+# exclude = ["example_no_std"]
