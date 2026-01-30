@@ -2,6 +2,9 @@
 
 mod impls;
 
+#[cfg(feature = "std")]
+pub use impls::BufferedConnection;
+
 /// A trait to perform in-order, serial, byte-wise I/O.
 ///
 /// When the `std` feature is enabled, this trait is automatically implemented
@@ -63,6 +66,16 @@ pub trait Connection {
 pub trait ConnectionExt: Connection {
     /// Read a single byte.
     fn read(&mut self) -> Result<u8, Self::Error>;
+
+    /// Read multiple bytes. Default implementation reads one byte at a time.
+    /// Override with a bulk read (e.g. `Read::read`) to avoid one syscall per byte.
+    fn read_buf(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        if buf.is_empty() {
+            return Ok(0);
+        }
+        buf[0] = self.read()?;
+        Ok(1)
+    }
 
     /// Peek a single byte. This MUST be a **non-blocking** operation, returning
     /// `None` if no byte is available.

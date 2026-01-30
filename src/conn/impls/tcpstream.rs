@@ -42,6 +42,13 @@ impl ConnectionExt for TcpStream {
         }
     }
 
+    fn read_buf(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        use std::io::Read;
+
+        self.set_nonblocking(false)?;
+        Read::read(self, buf)
+    }
+
     fn peek(&mut self) -> Result<Option<u8>, Self::Error> {
         self.set_nonblocking(true)?;
 

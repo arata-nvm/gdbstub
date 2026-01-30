@@ -5,6 +5,11 @@
 mod boxed;
 
 #[cfg(feature = "std")]
+mod buffered;
+#[cfg(feature = "std")]
+pub use buffered::BufferedConnection;
+
+#[cfg(feature = "std")]
 mod tcpstream;
 
 #[cfg(all(feature = "std", unix))]
@@ -56,6 +61,10 @@ impl<E> Connection for &mut dyn ConnectionExt<Error = E> {
 impl<E> ConnectionExt for &mut dyn ConnectionExt<Error = E> {
     fn read(&mut self) -> Result<u8, Self::Error> {
         (**self).read()
+    }
+
+    fn read_buf(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        (**self).read_buf(buf)
     }
 
     fn peek(&mut self) -> Result<Option<u8>, Self::Error> {

@@ -4,7 +4,7 @@ use crate::protocol::SpecificIdKind;
 use crate::protocol::SpecificThreadId;
 #[cfg(feature = "trace-pkt")]
 use alloc::string::String;
-#[cfg(feature = "trace-pkt")]
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use num_traits::identities::one;
 use num_traits::CheckedRem;
@@ -16,6 +16,11 @@ use num_traits::PrimInt;
 #[derive(Debug, Clone)]
 pub struct Error<C>(pub C);
 
+/// Size of the output buffer; flush to the connection when full to avoid
+/// one syscall per byte.
+#[cfg(feature = "alloc")]
+const OUTPUT_BUF_SIZE: usize = 512;
+
 /// A wrapper around [`Connection`] that computes the single-byte checksum of
 /// incoming / outgoing data.
 pub struct ResponseWriter<'a, C: Connection> {
@@ -26,6 +31,10 @@ pub struct ResponseWriter<'a, C: Connection> {
     rle_enabled: bool,
     rle_char: u8,
     rle_repeat: u8,
+
+    /// Buffered output; flushed when full or at packet end to avoid 1-byte writes.
+    #[cfg(feature = "alloc")]
+    buf: Vec<u8>,
 
     // buffer to log outgoing packets. only allocates if logging is enabled.
     #[cfg(feature = "trace-pkt")]
@@ -44,9 +53,22 @@ impl<'a, C: Connection + 'a> ResponseWriter<'a, C> {
             rle_char: 0,
             rle_repeat: 0,
 
+            #[cfg(feature = "alloc")]
+            buf: Vec::with_capacity(OUTPUT_BUF_SIZE),
+
             #[cfg(feature = "trace-pkt")]
             msg: Vec::new(),
         }
+    }
+
+    /// Flush buffered bytes to the connection.
+    #[cfg(feature = "alloc")]
+    fn flush_buf(&mut self) -> Result<(), Error<C::Error>> {
+        if !self.buf.is_empty() {
+            self.inner.write_all(&self.buf).map_err(Error)?;
+            self.buf.clear();
+        }
+        Ok(())
     }
 
     /// Consumes self, writing out the final '#' and checksum
@@ -73,6 +95,8 @@ impl<'a, C: Connection + 'a> ResponseWriter<'a, C> {
         #[cfg(feature = "trace-pkt")]
         trace!("--> ${}", String::from_utf8_lossy(&self.msg));
 
+        #[cfg(feature = "alloc")]
+        self.flush_buf()?;
         self.inner.flush().map_err(Error)?;
 
         Ok(())
@@ -104,11 +128,30 @@ impl<'a, C: Connection + 'a> ResponseWriter<'a, C> {
 
         if !self.started {
             self.started = true;
-            self.inner.write(b'$').map_err(Error)?;
+            #[cfg(feature = "alloc")]
+            {
+                self.buf.push(b'$');
+            }
+            #[cfg(not(feature = "alloc"))]
+            {
+                self.inner.write(b'$').map_err(Error)?;
+            }
         }
 
         self.checksum = self.checksum.wrapping_add(byte);
-        self.inner.write(byte).map_err(Error)
+
+        #[cfg(feature = "alloc")]
+        {
+            self.buf.push(byte);
+            if self.buf.len() >= OUTPUT_BUF_SIZE {
+                self.flush_buf()?;
+            }
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            self.inner.write(byte).map_err(Error)?;
+        }
+        Ok(())
     }
 
     fn write(&mut self, byte: u8) -> Result<(), Error<C::Error>> {
